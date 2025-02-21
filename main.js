@@ -5,7 +5,6 @@ const path = require("node:path");
 function createWindow() {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 800,
     autoHideMenuBar: true,
     height: 600,
     webPreferences: {
@@ -15,6 +14,7 @@ function createWindow() {
 
   // and load the index.html of the app.
   mainWindow.loadFile("index.html");
+  mainWindow.webContents.openDevTools();
 
   // Open the DevTools.
   // mainWindow.webContents.openDevTools()
@@ -26,7 +26,7 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
 
-  app.on("activate", function () {
+  app.on("activate", function() {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -36,7 +36,7 @@ app.whenReady().then(() => {
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
-app.on("window-all-closed", function () {
+app.on("window-all-closed", function() {
   if (process.platform !== "darwin") app.quit();
 });
 

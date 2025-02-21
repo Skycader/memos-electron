@@ -18,5 +18,8 @@
   "license": "CC0-1.0",
   "devDependencies": {
     "electron": "^29.1.4"
+  },
+  "dependencies": {
+    "websql": "^2.0.3"
   }
 }
