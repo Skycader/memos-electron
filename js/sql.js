@@ -8,7 +8,7 @@ try {
 db.transaction(function (tx) {
   //rDATA - repeatition DATA; lrepeat - last repeat unix time; dur - duration;
   tx.executeSql(
-    "CREATE TABLE IF NOT EXISTS OBJECTS (ID unique, PID, DATA, RDATE, LREPEAT, SPEC)"
+    "CREATE TABLE IF NOT EXISTS OBJECTS (ID unique, PID, DATA, RDATE, LREPEAT, SPEC)",
   ); //PID - PARENT ID
   tx.executeSql("CREATE TABLE IF NOT EXISTS DIRS (ID unique, PID, DATA)");
   tx.executeSql("CREATE TABLE IF NOT EXISTS MEMOROUTES (ID unique, DATA)");
@@ -73,9 +73,13 @@ sql = (query, callback, error, arg1, arg2, arg3) => {
       },
       function (tx, results) {
         console.log(results, query, "ERROR");
-		console.log(JSON.stringify(results), JSON.stringify(query), JSON.stringify(tx))
+        console.log(
+          JSON.stringify(results),
+          JSON.stringify(query),
+          JSON.stringify(tx),
+        );
         error(arg1, arg2, arg3);
-      }
+      },
     );
   });
 };
@@ -92,7 +96,7 @@ sql2 = (query) =>
         function (tx, results) {
           console.log(query, tx, results, "ERROR");
           error(arg1, arg2, arg3);
-        }
+        },
       );
     });
   });
@@ -116,11 +120,13 @@ mem.dropList = () => {
 };
 
 mem.find = async (data) => {
-  return await sql2(`select LOWER(data), * from objects where data like "%${data}%"`);
+  return await sql2(
+    `select LOWER(data), * from objects where data like "%${data}%"`,
+  );
 };
 mem.collect = () => {
-try {
-	/*
+  try {
+    /*
 	switch (rightBulb) {
 		case 'green':
 			addAdults()
@@ -151,18 +157,18 @@ try {
 	}
 	*/
 
-  addPriority(100)
-  addChildrenIfNeeded(settings.minHours*3)
-  addPriority(75)
-  addChildrenIfNeeded(settings.minHours*2)
-  addPriority(50)
-  addChildrenIfNeeded(settings.minHours)
-  addAdults()
-  
+    addPriority(100);
+    addChildrenIfNeeded(settings.minHours * 3);
+    addPriority(75);
+    addChildrenIfNeeded(settings.minHours * 2);
+    addPriority(50);
+    addChildrenIfNeeded(settings.minHours);
+    addAdults();
 
-  function addChildrenIfNeeded(hours) {
-	sql(`SELECT CASE
-		WHEN (SELECT (1*RDATE-1*LREPEAT) AS INTERVAL FROM OBJECTS WHERE INTERVAL>7200000 ORDER BY INTERVAL LIMIT 1) > ${hours*60*60*1000} 
+    function addChildrenIfNeeded(hours) {
+      sql(
+        `SELECT CASE
+		WHEN (SELECT (1*RDATE-1*LREPEAT) AS INTERVAL FROM OBJECTS WHERE INTERVAL>7200000 ORDER BY INTERVAL LIMIT 1) > ${hours * 60 * 60 * 1000} 
 		OR (SELECT COUNT(ID) AS IDX FROM OBJECTS)
 		THEN 1 
 		ELSE 0
@@ -181,53 +187,56 @@ try {
 		NEEDKIDS=1 
 		ORDER BY INTERVAL DESC 
 		LIMIT 50`,
-		mem.collectCallback)
-  }
-  function addPriority(n) {
-	  n = n / 100
-  /*
-   * Cards with N%+ wearout
-   */
-  sql(
-    // `SELECT * FROM OBJECTS  LEFT JOIN DIRS ON OBJECTS.PID=DIRS.ID AND 1*RDATE < ${Date.now()} LIMIT 10`,
-    `SELECT OBJECTS.ID, OBJECTS.DATA, RDATE, LREPEAT,  
+        mem.collectCallback,
+      );
+    }
+    function addPriority(n) {
+      n = n / 100;
+      /*
+       * Cards with N%+ wearout
+       */
+      sql(
+        // `SELECT * FROM OBJECTS  LEFT JOIN DIRS ON OBJECTS.PID=DIRS.ID AND 1*RDATE < ${Date.now()} LIMIT 10`,
+        `SELECT OBJECTS.ID, OBJECTS.DATA, RDATE, LREPEAT,  
     (1*RDATE - 1*LREPEAT) AS INTERVAL, SPEC, DIRS.DATA AS DIRDATA, 
     (1*${Date.now()}-1*LREPEAT) AS WAITING, ((1*${Date.now()}-1*LREPEAT)/(1.0*RDATE - 1.0*LREPEAT)-1) AS INTEGRITY 
     FROM OBJECTS JOIN DIRS ON OBJECTS.PID=DIRS.ID AND 1*RDATE < ${Date.now()} AND (1*RDATE - 1*LREPEAT)>=7200000 
     AND INTEGRITY>${n}
     ORDER BY INTEGRITY DESC LIMIT 50`,
-    mem.collectCallback
-  );
-}
-	function addAdults() {
-	/*
-	* Adults
-	*/
-	sql(
-		// `SELECT * FROM OBJECTS  LEFT JOIN DIRS ON OBJECTS.PID=DIRS.ID AND 1*RDATE < ${Date.now()} LIMIT 10`,
-		`SELECT OBJECTS.ID, OBJECTS.DATA, RDATE, LREPEAT,  
+        mem.collectCallback,
+      );
+    }
+    function addAdults() {
+      /*
+       * Adults
+       */
+      sql(
+        // `SELECT * FROM OBJECTS  LEFT JOIN DIRS ON OBJECTS.PID=DIRS.ID AND 1*RDATE < ${Date.now()} LIMIT 10`,
+        `SELECT OBJECTS.ID, OBJECTS.DATA, RDATE, LREPEAT,  
 		(1*RDATE - 1*LREPEAT) AS INTERVAL, SPEC, DIRS.DATA AS DIRDATA, 
 		(1*${Date.now()}-1*LREPEAT) AS WAITING, ((1*${Date.now()}-1*LREPEAT)/(1.0*RDATE - 1.0*LREPEAT)-1) AS INTEGRITY 
 		FROM OBJECTS JOIN DIRS ON OBJECTS.PID=DIRS.ID AND 1*RDATE < ${Date.now()} AND (1*RDATE - 1*LREPEAT)>=7200000 
 		ORDER BY INTEGRITY DESC LIMIT 50`,
-	 mem.collectCallback
-	 );
-	}
+        mem.collectCallback,
+      );
+    }
 
-	function addChildren() {
-  /*
-   * Children
-   * */
-  sql(
-    `SELECT OBJECTS.ID, OBJECTS.DATA, RDATE, LREPEAT, 
+    function addChildren() {
+      /*
+       * Children
+       * */
+      sql(
+        `SELECT OBJECTS.ID, OBJECTS.DATA, RDATE, LREPEAT, 
     (1*${Date.now()}-1*LREPEAT) AS WAITING, (1*RDATE - 1*LREPEAT) AS INTERVAL, 
     ((1*${Date.now()}-1*LREPEAT)/(1.0*RDATE - 1.0*LREPEAT)-1) AS INTEGRITY, SPEC, 
     DIRS.DATA AS DIRDATA FROM OBJECTS JOIN DIRS ON OBJECTS.PID=DIRS.ID AND 
     (1*RDATE - 1*LREPEAT)<7200000 ORDER BY INTERVAL DESC LIMIT 50`,
-    mem.collectCallback
-  );
-	}
-} catch(e) {console.log(e)}
+        mem.collectCallback,
+      );
+    }
+  } catch (e) {
+    console.log(e);
+  }
 };
 mem.fixLinker = () => {
   sql("select id,spec from objects", (res) => {
@@ -235,7 +244,7 @@ mem.fixLinker = () => {
     res.map((item) => {
       if (JSON.parse(item.SPEC) instanceof Array)
         sql(
-          `update OBJECTS set SPEC='{"links": ${item.SPEC},"qfields": []}' WHERE ID='${item.ID}'`
+          `update OBJECTS set SPEC='{"links": ${item.SPEC},"qfields": []}' WHERE ID='${item.ID}'`,
         );
     });
   });
@@ -287,7 +296,7 @@ mem.collectCallback = (res) => {
 mem.getDirById = (dirid, callback) => {
   sql(
     `SELECT *,(SELECT COUNT(ID) FROM OBJECTS WHERE PID='${dirid}') AS TOTAL FROM DIRS WHERE ID = '${dirid}'`,
-    callback
+    callback,
   );
 };
 mem.getDirInfo = (dirid) => {
@@ -311,7 +320,7 @@ mem.answered = 0; //move forward in a list of files to answer
 mem.define = (increment, comment) => {
   if (increment) {
     mem.answered++;
-   // console.log("Comment: ", comment, increment);
+    // console.log("Comment: ", comment, increment);
   }
   let DATA;
   let SPEC;
@@ -336,7 +345,7 @@ mem.define = (increment, comment) => {
     //console.log("dirData", dirData);
     //console.log(requestedFieldName)
     let reqFieldName = dirData[1][index[1]];
-   // console.log("REQ: ", dirData[1][index[1]]);
+    // console.log("REQ: ", dirData[1][index[1]]);
     mem.res.reqFieldName = reqFieldName;
     //console.log(reqFieldName);
     let rightAnswer;
@@ -355,48 +364,55 @@ mem.define = (increment, comment) => {
 
     //check for kids in the queue
 
-   /* console.log(
+    /* console.log(
       "Should you run for ",
       mem.list[mem.answered],
       mem.answered,
       mem.list[mem.answered].INTERVAL < 7200000
     ); */
     if (mem.list[mem.answered].INTERVAL < 7200000) {
-     /* console.log(
+      /* console.log(
         "Case running for ",
         mem.list[mem.answered],
         mem.answered,
         mem.list[mem.answered].INTERVAL < 7200000
       ); */
 
-	//Should the child be skipped?
-//	console.log()
-	if (mem.list[mem.answered].RDATE * 1 > Date.now()) { // если где-то там в будущем то скипать {
-		console.log("Карточка ещё не готова тк повтор в будущем! Будет скип?")
+      //Should the child be skipped?
+      //	console.log()
+      if (mem.list[mem.answered].RDATE * 1 > Date.now()) {
+        // если где-то там в будущем то скипать {
+        console.log("Карточка ещё не готова тк повтор в будущем! Будет скип?");
 
-		if (mem.list[mem.answered].INTERVAL/1000/60/60 * 2 <= settings.minHours) {
-			mem.minimalIntervalValueRAM = mem.list[mem.answered].INTERVAL/1000/60/60 * 2 
-		}
-		if ((mem.minimalIntervalValueRAM < settings.minHours) && (mem.list[mem.answered].RDATE * 1 <= Date.now() )) {
-			console.log('Скип отмёнен, дети нужны')
-			return;
-		}
-	/*	if (mem.answered>0)
+        if (
+          (mem.list[mem.answered].INTERVAL / 1000 / 60 / 60) * 2 <=
+          settings.minHours
+        ) {
+          mem.minimalIntervalValueRAM =
+            (mem.list[mem.answered].INTERVAL / 1000 / 60 / 60) * 2;
+        }
+        if (
+          mem.minimalIntervalValueRAM < settings.minHours &&
+          mem.list[mem.answered].RDATE * 1 <= Date.now()
+        ) {
+          console.log("Скип отмёнен, дети нужны");
+          return;
+        }
+        /*	if (mem.answered>0)
 		if (mem.list[mem.answered-1]?.INTERVAL*2 > 24 * 60 * 60 * 1000 ) {
 			//abort skip if the card won't become required adult
 			console.log("Скипа всё таки не будет тк предыдущая карточка стала взрослой и нужны ещё дети!")
 			return 0;
 		} */
-		console.log("скип будет!")
-	//if prev to become 48<24 hours (48 f.e.), skip is not needed
-		  
+        console.log("скип будет!");
+        //if prev to become 48<24 hours (48 f.e.), skip is not needed
+
         mem.define(
           1,
           `This child is not ready yet ${JSON.stringify(
-            mem.list[mem.answered]
-          )}`
+            mem.list[mem.answered],
+          )}`,
         );
-	  
       }
       for (let i = 0; i < mem.answered; i++) {
         item = mem.list[i];
@@ -407,13 +423,13 @@ mem.define = (increment, comment) => {
           item?.INTERVAL < 7200000 &&
           mem.list[mem.answered].INTERVAL < 7200000
         ) {
-         // console.log("CHILD DETECTED", i);
-         // console.log(mem.answered);
+          // console.log("CHILD DETECTED", i);
+          // console.log(mem.answered);
           mem.define(
             1,
             `Query has a child that didn't become adult ${JSON.stringify(
-              mem.list[mem.answered]
-            )}`
+              mem.list[mem.answered],
+            )}`,
           );
           break;
         }
@@ -446,15 +462,16 @@ mem.answered = 0;
 mem.blockAnswer = 0;
 
 mem.setTypoCount = (count) => {
-	mem.typoCount = count
-	document.querySelectorAll(".cardTimer")[2].style.width = ((6-count)/6)*100+"%"
-}
+  mem.typoCount = count;
+  document.querySelectorAll(".cardTimer")[2].style.width =
+    ((6 - count) / 6) * 100 + "%";
+};
 
 mem.answer = (answerIsCorrect) => {
   //mem.typoCount = 0 /*Обнулеие счётчика опечаток (per card) */
-  mem.setTypoCount(0)
-  mem.AnswerPrevLength = 0
-  let datenow = Date.now()
+  mem.setTypoCount(0);
+  mem.AnswerPrevLength = 0;
+  let datenow = Date.now();
   if (!mem.blockAnswer) {
     mem.blockAnswer = 1;
     document.querySelector(".cardTimer").classList.add("no-trunsition");
@@ -490,7 +507,9 @@ mem.answer = (answerIsCorrect) => {
       repeatIn = repeatIn / 1000 / 60 / 60;
       // console.log("New RDATE: " + new Date(diff));
       // console.log(`Repeat in ${repeatIn} hours`);
-	  console.log(`calling mem.update("RDATE", ${diff}, "ID", ${mem.res.obj.ID}`)
+      console.log(
+        `calling mem.update("RDATE", ${diff}, "ID", ${mem.res.obj.ID}`,
+      );
       mem.update("RDATE", diff, "ID", mem.res.obj.ID);
       mem.list[mem.answered].INTERVAL = diff - Date.now();
       if (answerIsCorrect != 100) {
@@ -501,20 +520,20 @@ mem.answer = (answerIsCorrect) => {
       }
       mem.showAnswer = 0;
     } else {
-	  let nullificate = confirm("Nullificate card?")
-	  if (nullificate) {
-		mem.update("RDATE", datenow, "ID", mem.res.obj.ID);
-		mem.update("LREPEAT", datenow, "ID", mem.res.obj.ID);
-	  }
+      let nullificate = confirm("Nullificate card?");
+      if (nullificate) {
+        mem.update("RDATE", datenow, "ID", mem.res.obj.ID);
+        mem.update("LREPEAT", datenow, "ID", mem.res.obj.ID);
+      }
       if (!(mem.showAnswer % 2))
         notifier.show(
           `⌛ - ${mem.convertHMS(
-            (Date.now() - mem.res.obj.LREPEAT * 1) / 1000
+            (Date.now() - mem.res.obj.LREPEAT * 1) / 1000,
           )}`,
-          true
+          true,
         );
       console.log("ZEROING FILE");
-      mem.res.obj.LREPEAT = datenow
+      mem.res.obj.LREPEAT = datenow;
       mem.code = 0;
     }
 
@@ -548,9 +567,9 @@ mem.percentage = 0;
 mem.progress = 0;
 mem.userAnswer = "";
 mem.showAnswer = 0;
-mem.answerPrevLength = 0
-mem.typoCount = 0
-mem.writingDirection = 0
+mem.answerPrevLength = 0;
+mem.typoCount = 0;
+mem.writingDirection = 0;
 mem.check = (answer) => {
   if (mem.showAnswer % 2) return 0;
   // document.querySelector("#memosInput").innerHTML.replaceAll("&nbsp;", " ");
@@ -577,50 +596,49 @@ mem.check = (answer) => {
   }
   if (answer == "/same") {
     //mem.typoCount = 0 /*Обнулеие счётчика опечаток (per card) */
-	mem.setTypoCount(0)
+    mem.setTypoCount(0);
     mem.answer(0.5);
   }
   if (answer == "/wrong") {
     check.next(0);
-	mem.setTypoCount(0)
+    mem.setTypoCount(0);
   }
   if (answer == "/skip") {
-	mem.setTypoCount(0)
+    mem.setTypoCount(0);
     mem.answered++;
     check.next(0.5);
   }
   if (answer == "/postpone") {
     mem.answered++;
-	mem.setTypoCount(0)
+    mem.setTypoCount(0);
     mem.answer(100);
     check.next(-1);
   }
   let rightSymbols = 0;
 
-	//console.log("right symbols: ", rightSymbols)
-//	console.log(answer.join().length, mem.maxRightSymbols)
-	  if (mem.answerPrevLength > answer.join().length) {
+  //console.log("right symbols: ", rightSymbols)
+  //	console.log(answer.join().length, mem.maxRightSymbols)
+  if (mem.answerPrevLength > answer.join().length) {
+    if (mem.writingDirection === 1 && mem.mistake) {
+      //console.log(mem.answerPrevLength, answer.join().length)
+      mem.setTypoCount(mem.typoCount + 1);
 
-		 if ((mem.writingDirection === 1)&&(mem.mistake)) {
-	  //console.log(mem.answerPrevLength, answer.join().length)
-	  mem.setTypoCount(mem.typoCount+1)
-	  
-	  check.wrong()
-		  }
-		  /*
+      check.wrong();
+    }
+    /*
 	  if (mem.typoCount > 6) {
 		  alert()
 		mem.answer(0)
 	  }
 	  */
-	  mem.writingDirection = -1
+    mem.writingDirection = -1;
   } else {
-	  mem.writingDirection = 1
+    mem.writingDirection = 1;
   }
 
-	//CHECKHERE
+  //CHECKHERE
   let block = 0;
-	console.log(answer)
+  console.log(answer);
   for (var i = 0; i < answer.length; i++) {
     for (var j = 0; j < answer[i].length; j++) {
       // console.log(
@@ -630,15 +648,16 @@ mem.check = (answer) => {
       //     answer[i][j].toLowerCase() == mem.res.rightAnswer[i][j].toLowerCase()
       //   }`
       // );
-      if ((
-        answer[i][j].toLowerCase() != mem.res.rightAnswer[i][j].toLowerCase()
-      ) || (answer[i].length > mem.res.rightAnswer[i].length) ) {
+      if (
+        answer[i][j].toLowerCase() != mem.res.rightAnswer[i][j].toLowerCase() ||
+        answer[i].length > mem.res.rightAnswer[i].length
+      ) {
         block = 1;
 
         mem.mistake = 1;
-		break 
+        break;
       } else {
-		mem.mistake=0
+        mem.mistake = 0;
         if (!block) rightSymbols++;
         // console.log(rightSymbols);
       }
@@ -657,18 +676,16 @@ mem.check = (answer) => {
       }
     }
     if (rightSymbols > mem.maxRightSymbols) {
-	 // document.querySelector(".cardTimer").style.transitionDuration("0s")
-	  document.querySelector(".cardTimer").classList.add("immediate")
+      // document.querySelector(".cardTimer").style.transitionDuration("0s")
+      document.querySelector(".cardTimer").classList.add("immediate");
       document.querySelector(".cardTimer").classList.remove("timerStarted");
 
-	 // document.querySelector(".cardTimer").style.transitionDuration("0s")
-	 // document.querySelector(".cardTimer").style.transitionDuration = document.querySelector(".innerdata").innerText.length*0.5 + 15 + 's' 
-
+      // document.querySelector(".cardTimer").style.transitionDuration("0s")
+      // document.querySelector(".cardTimer").style.transitionDuration = document.querySelector(".innerdata").innerText.length*0.5 + 15 + 's'
 
       setTimeout(() => {
-		  document.querySelector(".cardTimer").classList.remove("immediate")
+        document.querySelector(".cardTimer").classList.remove("immediate");
         cards.initTimer();
-
       }, 500);
 
       mem.maxRightSymbols = rightSymbols;
@@ -690,8 +707,7 @@ mem.check = (answer) => {
     }
   }
 
-
-  mem.answerPrevLength = answer.join().length
+  mem.answerPrevLength = answer.join().length;
 };
 
 mem.query = null;
@@ -718,7 +734,7 @@ mem.nothing = null;
 
 mem.getWeakestItemInRepeat = async function () {
   let interval = await sql2(
-    `SELECT *, (RDATE-LREPEAT) AS INTERVAL FROM OBJECTS ORDER BY (RDATE-LREPEAT) ASC LIMIT 1`
+    `SELECT *, (RDATE-LREPEAT) AS INTERVAL FROM OBJECTS ORDER BY (RDATE-LREPEAT) ASC LIMIT 1`,
   );
   interval = interval[0].INTERVAL;
   mem.weakestItem = mem.convertHMS(interval / 1000);
@@ -729,11 +745,11 @@ mem.when = async (id) => {
   //kids first
   let res;
   let kids = await sql2(
-    `SELECT ID, DATA, RDATE, LREPEAT, (1*RDATE-1*LREPEAT) AS INTERVAL, SPEC FROM OBJECTS WHERE INTERVAL<7200000 ORDER BY INTERVAL DESC LIMIT 1`
+    `SELECT ID, DATA, RDATE, LREPEAT, (1*RDATE-1*LREPEAT) AS INTERVAL, SPEC FROM OBJECTS WHERE INTERVAL<7200000 ORDER BY INTERVAL DESC LIMIT 1`,
   );
 
   let adults = await sql2(
-    `SELECT ID, DATA, RDATE, (1*RDATE-1*LREPEAT) AS INTERVAL, LREPEAT, SPEC FROM OBJECTS WHERE (1*RDATE > ${Date.now()}) AND INTERVAL>=7200000 ORDER BY RDATE ASC LIMIT 1`
+    `SELECT ID, DATA, RDATE, (1*RDATE-1*LREPEAT) AS INTERVAL, LREPEAT, SPEC FROM OBJECTS WHERE (1*RDATE > ${Date.now()}) AND INTERVAL>=7200000 ORDER BY RDATE ASC LIMIT 1`,
   );
 
   // if (kids[0].RDATE*1>Date.now()) kids=null
@@ -773,10 +789,12 @@ mem.when = async (id) => {
 mem.nextRepeatInValue = 0;
 mem.nextRepeatIn = async function () {
   let res = await sql2(
-    `SELECT ID, DATA, MIN(RDATE) AS RDATE, LREPEAT, SPEC FROM OBJECTS WHERE 1*RDATE>${Date.now()} LIMIT 1`
+    `SELECT ID, DATA, MIN(RDATE) AS RDATE, LREPEAT, SPEC FROM OBJECTS WHERE 1*RDATE>${Date.now()} LIMIT 1`,
   );
-  
-  mem.nextRepeatInValue = mem.convertHMS((res[0].RDATE * 1 - Date.now())/1000);
+
+  mem.nextRepeatInValue = mem.convertHMS(
+    (res[0].RDATE * 1 - Date.now()) / 1000,
+  );
 };
 
 const zeroPad = (num, places) => String(num).padStart(places, "0");
@@ -800,14 +818,14 @@ mem.when2 = (res) => {
     daysLeft = Math.floor(timeLeft / 60 / 60 / 24); //ok
     hoursLeft = Math.floor((timeLeft - daysLeft * 60 * 60 * 24) / 60 / 60);
     minutesLeft = Math.floor(
-      (timeLeft - daysLeft * 60 * 60 * 24 - hoursLeft * 60 * 60) / 60
+      (timeLeft - daysLeft * 60 * 60 * 24 - hoursLeft * 60 * 60) / 60,
     );
     if (timeLeft > 0 && timeLeft < 60) {
       minutesLeft = 1;
     }
     let result = `${zeroPad(daysLeft, 2)}:${zeroPad(hoursLeft, 2)}:${zeroPad(
       minutesLeft,
-      2
+      2,
     )}`;
     // console.log(result);
     // if (mem.list.length) back=1
@@ -823,28 +841,28 @@ mem.convertHMS = (seconds) => {
   if (timeLeft < 0) timeLeft = 0;
   let yearsLeft = Math.floor(timeLeft / 60 / 60 / 24 / 365);
   let daysLeft = Math.floor(
-    (timeLeft - yearsLeft * 60 * 60 * 24 * 365) / 60 / 60 / 24
+    (timeLeft - yearsLeft * 60 * 60 * 24 * 365) / 60 / 60 / 24,
   );
   let hoursLeft = Math.floor(
     (timeLeft - yearsLeft * 60 * 60 * 24 * 365 - daysLeft * 60 * 60 * 24) /
       60 /
-      60
+      60,
   );
   let minutesLeft = Math.floor(
     (timeLeft -
       yearsLeft * 60 * 60 * 24 * 365 -
       daysLeft * 60 * 60 * 24 -
       hoursLeft * 60 * 60) /
-      60
+      60,
   );
   if (yearsLeft > 0)
     return `${zeroPad(yearsLeft, 2)}:${zeroPad(daysLeft, 2)}:${zeroPad(
       hoursLeft,
-      2
+      2,
     )}:${zeroPad(minutesLeft, 2)}`;
   return `${zeroPad(daysLeft, 2)}:${zeroPad(hoursLeft, 2)}:${zeroPad(
     minutesLeft,
-    2
+    2,
   )}`;
 };
 
@@ -857,21 +875,21 @@ mem.calcRepeat = (date) => {
   daysLeft = Math.floor(timeLeft / 60 / 60 / 24); //ok
   hoursLeft = Math.floor((timeLeft - daysLeft * 60 * 60 * 24) / 60 / 60);
   minutesLeft = Math.floor(
-    (timeLeft - daysLeft * 60 * 60 * 24 - hoursLeft * 60 * 60) / 60
+    (timeLeft - daysLeft * 60 * 60 * 24 - hoursLeft * 60 * 60) / 60,
   );
   let result = `${zeroPad(daysLeft, 2)}:${zeroPad(hoursLeft, 2)}:${zeroPad(
     minutesLeft,
-    2
+    2,
   )}`;
   return result;
 };
 
-let leftBulb = null
-let rightBulb = null
+let leftBulb = null;
+let rightBulb = null;
 
 mem.circleData = (update) => {
-//	console.log(mem.list.length)
-  document.querySelector("#minHours").value = settings.minHours
+  //	console.log(mem.list.length)
+  document.querySelector("#minHours").value = settings.minHours;
   let res = `${mem.todayAnsweredResult} | ${mem.countResult} | ${mem.countDailyResult}`;
   if (
     mem.todayAnsweredResult != undefined &&
@@ -882,63 +900,61 @@ mem.circleData = (update) => {
   let percentage = Math.floor(
     ((mem.countTotalResult * 1 - mem.countResult * 1) / mem.countTotalResult) *
       1 *
-      100
+      100,
   );
   if (!isNaN(percentage) && Math.abs(percentage) != Infinity) {
     document.querySelector("#info3").innerHTML = percentage;
-    document.querySelector(
-      "#info4"
-    ).innerHTML = `${mem.deadItems} · ${zeroPad(mem.maxIntegrityValue,3)} · ${mem.averageIntegrityValue}`;
+    document.querySelector("#info4").innerHTML =
+      `${mem.deadItems} · ${zeroPad(mem.maxIntegrityValue, 3)} · ${mem.averageIntegrityValue}`;
 
     switch (Math.floor(mem.maxIntegrityValue / 25)) {
       case 0:
-		leftBulb = 'green'
+        leftBulb = "green";
         circle.leftBulb.green();
         break;
       case 1:
-		leftBulb = 'yellow'
+        leftBulb = "yellow";
         circle.leftBulb.yellow();
         break;
       case 2:
-		leftBulb = 'orange'
+        leftBulb = "orange";
         circle.leftBulb.orange();
         break;
       case 3:
-		leftBulb = 'red'
+        leftBulb = "red";
         circle.leftBulb.red();
         break;
       default:
-		leftBulb = 'red'
+        leftBulb = "red";
         circle.leftBulb.red();
         break;
     }
-
 
     switch (Math.floor(mem.minimalIntervalValue / settings.minHours)) {
       case 0:
-		rightBulb = 'green'
+        rightBulb = "green";
         circle.rightBulb.green();
         break;
       case 1:
-		rightBulb = 'yellow'
+        rightBulb = "yellow";
         circle.rightBulb.yellow();
         break;
       case 2:
-		rightBulb = 'orange'
+        rightBulb = "orange";
         circle.rightBulb.orange();
         break;
       case 3:
-		rightBulb = 'red'
+        rightBulb = "red";
         circle.rightBulb.red();
         break;
       default:
-		rightBulb = 'red'
+        rightBulb = "red";
         circle.rightBulb.red();
         break;
     }
 
-	mem.collect()
-	
+    mem.collect();
+
     /*if (mem.children > 0) {
       circle.rightBulb.green();
     }*/
@@ -948,7 +964,7 @@ mem.circleData = (update) => {
     // document.querySelector("#info5").innerHTML = mem.weakestItem;
     document.querySelector("#info5").innerHTML = numberWithCommas(
       zeroPad(mem.canEarnValue, 9),
-      "."
+      ".",
     );
 
     document.querySelector(".memobase-info-1").innerHTML =
@@ -960,8 +976,12 @@ mem.circleData = (update) => {
     document.querySelector(".memobase-info-3").innerHTML =
       `Children ` + mem.inQuery;
 
-      document.querySelector(".memobase-info-4").innerHTML =
-      `Weakest card ` + mem.minimalIntervalIcon + " " + Math.floor(mem.minimalIntervalValue) + "h";
+    document.querySelector(".memobase-info-4").innerHTML =
+      `Weakest card ` +
+      mem.minimalIntervalIcon +
+      " " +
+      Math.floor(mem.minimalIntervalValue) +
+      "h";
 
     if (percentage > 0) {
       document.querySelector("#mycircle").classList.remove("hidden");
@@ -973,7 +993,7 @@ mem.circleData = (update) => {
     percentage + ", 100";
   if (update) {
     mem.getWeakestItemInRepeat();
-    mem.nextRepeatIn()
+    mem.nextRepeatIn();
     mem.countQuery();
     mem.todayAnswered();
     mem.countDaily();
@@ -984,7 +1004,7 @@ mem.circleData = (update) => {
     mem.memoPower();
     mem.maxIntegrity();
     mem.averageIntegrity();
-    mem.minimalInterval()
+    mem.minimalInterval();
     mem.canEarn();
   }
 };
@@ -1012,7 +1032,7 @@ mem.maxIntegrity = async () => {
      FROM OBJECTS
      WHERE (INTERVAL > 7200000) AND (1*RDATE < ${Date.now()})
      ORDER BY INTEGRITY DESC
-     LIMIT 1`
+     LIMIT 1`,
   );
   mem.maxIntegrityValue = zeroPad(1 * (res[0].INTEGRITY * 100).toFixed(0), 3);
 };
@@ -1043,12 +1063,12 @@ mem.averageIntegrity = async () => {
   `);
   mem.averageIntegrityValue = zeroPad(
     1 * (res[0]["AVG_INTEGRITY"] * 100).toFixed(),
-    3
+    3,
   );
 };
-mem.minimalIntervalValue = 0
-mem.minimalIntervalIcon = 0
-mem.minimalIntervalCard = 0
+mem.minimalIntervalValue = 0;
+mem.minimalIntervalIcon = 0;
+mem.minimalIntervalCard = 0;
 mem.minimalInterval = async () => {
   let res = await sql2(`
 
@@ -1061,13 +1081,13 @@ mem.minimalInterval = async () => {
   WHERE INTERVAL > 7200000
   ORDER BY INTERVAL ASC
   LIMIT 1
-  `)
+  `);
 
-  mem.minimalIntervalValue = (res[0].INTERVAL/1000/60/60)
-  mem.minimalIntervalCard = res[0].OBJECTS_DATA
+  mem.minimalIntervalValue = res[0].INTERVAL / 1000 / 60 / 60;
+  mem.minimalIntervalCard = res[0].OBJECTS_DATA;
 
-  mem.minimalIntervalIcon = JSON.parse(res[0].DIRS_DATA)[0][0]
-}
+  mem.minimalIntervalIcon = JSON.parse(res[0].DIRS_DATA)[0][0];
+};
 
 mem.memoPowerResult = 0;
 mem.memoPower = () => {
@@ -1091,13 +1111,13 @@ function numberWithCommas(num, sep) {
 }
 
 mem.inQuery = 0;
-mem.children = 0
+mem.children = 0;
 mem.countQuery = async () => {
   let res = await sql2(
-    `SELECT COUNT(ID), RDATE, (1*RDATE-1*LREPEAT) AS INTERVAL FROM OBJECTS WHERE (1*RDATE-1*LREPEAT)<7200000`
+    `SELECT COUNT(ID), RDATE, (1*RDATE-1*LREPEAT) AS INTERVAL FROM OBJECTS WHERE (1*RDATE-1*LREPEAT)<7200000`,
   );
   res = res[0]["COUNT(ID)"];
-  mem.children = res
+  mem.children = res;
   res = numberWithCommas(zeroPad(res, 9), ".");
   mem.inQuery = res;
   return res;
@@ -1105,15 +1125,15 @@ mem.countQuery = async () => {
 
 mem.count = async function () {
   let repeats = await sql2(
-    `SELECT COUNT(ID) FROM OBJECTS WHERE 1*RDATE < ${Date.now()} AND (1*RDATE-1*LREPEAT)>7200000`
+    `SELECT COUNT(ID) FROM OBJECTS WHERE 1*RDATE < ${Date.now()} AND (1*RDATE-1*LREPEAT)>7200000`,
   );
   repeats = repeats[0]["COUNT(ID)"];
   /*let kids = await sql2(
     `SELECT ID, DATA, RDATE, (1*RDATE-1*LREPEAT) AS INTERVAL FROM OBJECTS WHERE (1*RDATE-1*LREPEAT)<7200000 ORDER BY INTERVAL DESC LIMIT 1`
   );*/
- 
-let kids = await sql2(`SELECT CASE
-		WHEN (SELECT (1*RDATE-1*LREPEAT) AS INTERVAL FROM OBJECTS WHERE INTERVAL>7200000 ORDER BY INTERVAL LIMIT 1) > ${settings.minHours*60*60*1000}
+
+  let kids = await sql2(`SELECT CASE
+		WHEN (SELECT (1*RDATE-1*LREPEAT) AS INTERVAL FROM OBJECTS WHERE INTERVAL>7200000 ORDER BY INTERVAL LIMIT 1) > ${settings.minHours * 60 * 60 * 1000}
 		OR (SELECT COUNT(ID) AS IDX FROM OBJECTS)
 		THEN 1 
 		ELSE 0
@@ -1131,13 +1151,13 @@ let kids = await sql2(`SELECT CASE
 		AND
 		NEEDKIDS=1 
 		ORDER BY INTERVAL DESC 
-		LIMIT 1`)
+		LIMIT 1`);
 
   let res = [repeats, kids];
   if (kids.length && kids[0].RDATE * 1 < Date.now()) repeats++;
   let result = zeroPad(repeats, 3);
   mem.countResult = result;
-  
+
   mem.circleData();
   return res;
 };
@@ -1159,18 +1179,18 @@ function getNewDay(arg = 0) {
 mem.countDaily = () => {
   sql(
     `SELECT COUNT(ID) FROM OBJECTS WHERE 1*RDATE < ${getNewDay(
-      1
+      1,
     )} AND 1*RDATE > ${Date.now()}`,
-    mem.countDaily2
+    mem.countDaily2,
   );
 };
 
 mem.todayAnswered = () => {
   sql(
     `SELECT COUNT(ID) FROM OBJECTS WHERE (1*LREPEAT > ${getNewDay(
-      0
+      0,
     )}) AND (1*RDATE != 1*LREPEAT)`,
-    mem.todayAnswered2
+    mem.todayAnswered2,
   );
 };
 
@@ -1215,7 +1235,7 @@ mem.countDeadHours = async () => {
    FROM OBJECTS WHERE (INTERVAL<WT) AND (1*RDATE < ${Date.now()})`);
   mem.deadHours = zeroPad(
     ((dhours[0]["DHOURS"] * 1) / 1000 / 60 / 60 / 24 / 30).toFixed(0),
-    3
+    3,
   );
 };
 
@@ -1257,7 +1277,7 @@ mem.setItem = function (PID, DATA, SPEC) {
   if (ITEM_G_COUNT < 2000) {
     ITEM_G_COUNT++;
     sql2(
-      `INSERT INTO OBJECTS (ID,PID, DATA, RDATE, LREPEAT, SPEC) VALUES ("${ID}","${PID}",'${DATA}',"${RDATE}", "${LREPEAT}", '${SPEC}')`
+      `INSERT INTO OBJECTS (ID,PID, DATA, RDATE, LREPEAT, SPEC) VALUES ("${ID}","${PID}",'${DATA}',"${RDATE}", "${LREPEAT}", '${SPEC}')`,
     ).then((res) => {
       mem.collect();
     });
@@ -1297,7 +1317,7 @@ mem.setDir = (PID, DATA) => {
       undefined,
       mem.setDir,
       PID,
-      DATA
+      DATA,
     );
   } else {
     console.log("CANNOT GENERATE UNIQUE ID");
@@ -1313,7 +1333,7 @@ mem.get = (ID, callback) => {
   //get
   sql(
     `SELECT OBJECTS.ID, OBJECTS.DATA, RDATE, LREPEAT, SPEC, DIRS.DATA AS DIRDATA FROM OBJECTS JOIN DIRS ON OBJECTS.PID=DIRS.ID AND OBJECTS.ID='${ID}'`,
-    callback
+    callback,
   );
 };
 
@@ -1326,13 +1346,13 @@ mem.need = (LIMIT) => {
     LIMIT = 1;
   }
   sql(
-    `SELECT ID, DATA FROM OBJECTS WHERE DATE < '${DATA.now()}' LIMIT ${LIMIT}`
+    `SELECT ID, DATA FROM OBJECTS WHERE DATE < '${DATA.now()}' LIMIT ${LIMIT}`,
   );
 };
 
 mem.update = async (FIELD, DATA, CON1, CON2) => {
   await sql2(
-    `UPDATE OBJECTS SET ${FIELD} = '${DATA}' WHERE ${CON1} = '${CON2}'`
+    `UPDATE OBJECTS SET ${FIELD} = '${DATA}' WHERE ${CON1} = '${CON2}'`,
   );
 };
 
@@ -1434,7 +1454,7 @@ mem.rmdir = (ID) => {
     mem.rmdir();
   } else {
     sql(
-      `UPDATE DIRS SET DATA = 'NULL' WHERE PID IN (SELECT ID FROM DIRS WHERE DATA = 'NULL')`
+      `UPDATE DIRS SET DATA = 'NULL' WHERE PID IN (SELECT ID FROM DIRS WHERE DATA = 'NULL')`,
     ); //step 2
 
     sql("SELECT DATA FROM DIRS WHERE DATA = 'NULL'", mem.rmdir2);
@@ -1452,7 +1472,7 @@ mem.rmdir2 = (res) => {
     mem.rmdir();
   } else {
     sql(
-      `DELETE FROM OBJECTS WHERE PID IN (SELECT ID FROM DIRS WHERE DATA = 'NULL')`
+      `DELETE FROM OBJECTS WHERE PID IN (SELECT ID FROM DIRS WHERE DATA = 'NULL')`,
     );
     sql(`DELETE FROM DIRS WHERE DATA = 'NULL'`);
     mem.browser(path[path.length - 1]);
@@ -1544,7 +1564,7 @@ mem.show = (DIRID, callback, order, SEARCH_DATA) => {
 END AS result
      FROM DIRS WHERE PID = "${DIRID}" ORDER BY 
      result`,
-      callback //     ASC LIMIT ${mem.offset},1000000`,
+      callback, //     ASC LIMIT ${mem.offset},1000000`,
     );
   } else {
     sql(`SELECT * FROM DIRS LIMIT 0`, callback);
@@ -1557,19 +1577,19 @@ END AS result
         SELECT * FROM OBJECTS WHERE DATA LIKE '%${SEARCH_DATA}%' 
         LIMIT ${mem.offset},10
       `,
-        callback
+        callback,
       );
       break;
     case "intervalAsc":
       sql(
         `SELECT * FROM OBJECTS WHERE PID = "${DIRID}" GROUP BY ID ORDER BY SUM(RDATE-LREPEAT) LIMIT ${mem.offset},10`,
-        callback
+        callback,
       );
       break;
     case "intervalDesc":
       sql(
         `SELECT * FROM OBJECTS WHERE PID = "${DIRID}" GROUP BY ID ORDER BY SUM(RDATE-LREPEAT) DESC LIMIT ${mem.offset},10`,
-        callback
+        callback,
       );
       break;
     case "integrityDesc":
@@ -1577,19 +1597,19 @@ END AS result
         `SELECT * , (1*${Date.now()}-1*LREPEAT)/(1.0*RDATE - 1.0*LREPEAT) AS INTEGRITY FROM OBJECTS WHERE PID = "${DIRID}" GROUP BY ID ORDER BY INTEGRITY DESC LIMIT ${
           mem.offset
         },10`,
-        callback
+        callback,
       );
       break;
     case "lastRepeatDesc":
       sql(
         `SELECT * FROM OBJECTS WHERE PID = "${DIRID}" GROUP BY ID ORDER BY LREPEAT DESC LIMIT ${mem.offset},10`,
-        callback
+        callback,
       );
       break;
     default:
       sql(
         `SELECT * FROM OBJECTS WHERE PID = "${DIRID}" ORDER BY RDATE LIMIT ${mem.offset},10`,
-        callback
+        callback,
       );
       break;
   }
@@ -1713,7 +1733,7 @@ mem.setCache = (data) => {
     mem.objectsStartAt = counter + 1;
     for (let i = 0; i < browserCache[1].length; i++) {
       memPower = mem.convertHMS(
-        (browserCache[1][i].RDATE * 1 - browserCache[1][i].LREPEAT * 1) / 1000
+        (browserCache[1][i].RDATE * 1 - browserCache[1][i].LREPEAT * 1) / 1000,
       );
 
       counter++;
@@ -1734,13 +1754,11 @@ mem.setCache = (data) => {
       browserString = "Nothing here yet";
     }
     if (!mem.terminalHelpMessage.length) {
-      document.querySelector(
-        "#terminal"
-      ).value = `Memos Terminal v 0.1.5 \n${pathNames}\n${browserString}\n`;
+      document.querySelector("#terminal").value =
+        `Memos Terminal v 0.1.5 \n${pathNames}\n${browserString}\n`;
     } else {
-      document.querySelector(
-        "#terminal"
-      ).value = `Memos Terminal v 0.1.5 \n ${mem.terminalHelpMessage}`;
+      document.querySelector("#terminal").value =
+        `Memos Terminal v 0.1.5 \n ${mem.terminalHelpMessage}`;
       mem.terminalHelpMessage = "";
     }
   }
@@ -1768,20 +1786,19 @@ mem.terminalHelp = () => {
 };
 
 mem.freeSpace = async () => {
-	const estimate = await navigator.storage.estimate()
-	mem.terminalHelpMessage = `
+  const estimate = await navigator.storage.estimate();
+  mem.terminalHelpMessage = `
 	Usage: ${estimate.usage} bytes;
 	Quota: ${estimate.quota} bytes;
-	Percentage: ${(estimate.usage/estimate.quota * 100).toFixed(2)}%
-	`
-	mem.browser(path[path.length - 1],browser.order);
-
-}
+	Percentage: ${((estimate.usage / estimate.quota) * 100).toFixed(2)}%
+	`;
+  mem.browser(path[path.length - 1], browser.order);
+};
 
 mem.terminalChoice = "";
 mem.terminalCommand = (choice) => {
-//	console.log(choice)
-  if (mem.searchData !== "") choice = "find "+mem.searchData
+  //	console.log(choice)
+  if (mem.searchData !== "") choice = "find " + mem.searchData;
   ITEM_G_COUNT = 0;
   G_COUNT = 0;
   if (pathNames.length == 0) {
@@ -1793,13 +1810,13 @@ mem.terminalCommand = (choice) => {
   switch (command) {
     //0: list content
     case "ls":
-      mem.browser(path[path.length - 1],browser.order);
+      mem.browser(path[path.length - 1], browser.order);
       break;
     case "find":
       mem.browser(
         path[path.length - 1],
         "find",
-        choice.split(" ").slice(1).join(" ").toLowerCase()
+        choice.split(" ").slice(1).join(" ").toLowerCase(),
       );
     case "lsi":
       mem.browser(path[path.length - 1], "interval");
@@ -1816,7 +1833,7 @@ mem.terminalCommand = (choice) => {
     case "lslim":
       mem.browser(
         path[path.length - 1],
-        `limit ${choice.split(" ")[1].toLowerCase()}`
+        `limit ${choice.split(" ")[1].toLowerCase()}`,
       );
       break;
     case "/clear": //clear SPEC
@@ -1826,11 +1843,11 @@ mem.terminalCommand = (choice) => {
       let currentDate = Date.now();
       sql(
         `UPDATE OBJECTS SET LREPEAT = '${currentDate}' WHERE ID LIKE '%'`,
-        console.log
+        console.log,
       );
       sql(
         `UPDATE OBJECTS SET RDATE = '${currentDate}' WHERE ID LIKE '%'`,
-        console.log
+        console.log,
       );
       break;
     case "--": // //restore previous command
@@ -1841,9 +1858,9 @@ mem.terminalCommand = (choice) => {
       mem.browser(path[path.length - 1]);
       break;
 
-	case "free":
-		  mem.freeSpace()
-		  break;
+    case "free":
+      mem.freeSpace();
+      break;
     case "fixlinker":
       mem.fixLinker();
       break;
@@ -1860,7 +1877,7 @@ mem.terminalCommand = (choice) => {
       } else if (choice.split(" ")[1] == "/") {
         path = ["/"];
         pathNames = ["/"];
-        mem.browser(path[path.length - 1],browser.order);
+        mem.browser(path[path.length - 1], browser.order);
       } else {
         newChoice = 1 * choice.split(" ")[1] - 1;
         DIRID = browserCache[0][newChoice].ID;
@@ -1871,7 +1888,7 @@ mem.terminalCommand = (choice) => {
         pathNames[pathNames.length - 1] +=
           " " + JSON.parse(browserCache[0][newChoice].DATA)[0][1];
         // mem.browser(DIRID);
-        mem.browser(path[path.length - 1],browser.order);
+        mem.browser(path[path.length - 1], browser.order);
         break;
       }
       break;
@@ -2069,7 +2086,7 @@ browser.editFile = async function (id) {
 };
 
 browser.search = () => {
-  mem.searchData = ""
+  mem.searchData = "";
   if (mem.terminalChoice.includes("find")) {
     mem.terminalCommand("ls");
     return;
@@ -2083,30 +2100,23 @@ browser.search = () => {
 };
 
 browser.newDir = () => {
-  document.querySelector(
-    ".objects"
-  ).innerHTML = `<div class="memobject md-ripples" onclick="browser.addDir()"><div class="memdata">←</div></div>`;
+  document.querySelector(".objects").innerHTML =
+    `<div class="memobject md-ripples" onclick="browser.addDir()"><div class="memdata">←</div></div>`;
 
-  document.querySelector(
-    ".objects"
-  ).innerHTML += `<div class="memobject md-ripples"  style="border-bottom: 5px dotted #151515"><div class="memdata">Icon</div></div>`;
-  document.querySelector(
-    ".objects"
-  ).innerHTML += `<textarea id='dirIcon'  onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'></textarea>`;
+  document.querySelector(".objects").innerHTML +=
+    `<div class="memobject md-ripples"  style="border-bottom: 5px dotted #151515"><div class="memdata">Icon</div></div>`;
+  document.querySelector(".objects").innerHTML +=
+    `<textarea id='dirIcon'  onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'></textarea>`;
 
-  document.querySelector(
-    ".objects"
-  ).innerHTML += `<div class="memobject md-ripples"   style="border-bottom: 5px dotted #151515"><div class="memdata">Name</div></div>`;
-  document.querySelector(
-    ".objects"
-  ).innerHTML += `<textarea id='dirName'onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'></textarea>`;
+  document.querySelector(".objects").innerHTML +=
+    `<div class="memobject md-ripples"   style="border-bottom: 5px dotted #151515"><div class="memdata">Name</div></div>`;
+  document.querySelector(".objects").innerHTML +=
+    `<textarea id='dirName'onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'></textarea>`;
 
-  document.querySelector(
-    ".objects"
-  ).innerHTML += `<div class="memobject md-ripples" style="border-bottom: 5px dotted #151515"><div class="memdata">Fields</div></div>`;
-  document.querySelector(
-    ".objects"
-  ).innerHTML += `<textarea placeholder="Field1,Field2, ..." id='dirFields' onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'></textarea>`;
+  document.querySelector(".objects").innerHTML +=
+    `<div class="memobject md-ripples" style="border-bottom: 5px dotted #151515"><div class="memdata">Fields</div></div>`;
+  document.querySelector(".objects").innerHTML +=
+    `<textarea placeholder="Field1,Field2, ..." id='dirFields' onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'></textarea>`;
 };
 
 browser.addDir = () => {
@@ -2162,34 +2172,26 @@ browser.editDir = (obj) => {
     let dirIcon = DATA[0][0];
     let dirName = DATA[0][1];
     let dirFields = DATA[1].join();
-    document.querySelector(
-      ".objects"
-    ).innerHTML = `<div class="memobject md-ripples" onclick="browser.editDirAPI()"><div class="memdata">←</div></div>`;
+    document.querySelector(".objects").innerHTML =
+      `<div class="memobject md-ripples" onclick="browser.editDirAPI()"><div class="memdata">←</div></div>`;
 
-    document.querySelector(
-      ".objects"
-    ).innerHTML += `<div class="memobject md-ripples"  style="border-bottom: 5px dotted #151515"><div class="memdata">Icon</div></div>`;
-    document.querySelector(
-      ".objects"
-    ).innerHTML += `<textarea id='dirIcon' onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'>${dirIcon}</textarea>`;
+    document.querySelector(".objects").innerHTML +=
+      `<div class="memobject md-ripples"  style="border-bottom: 5px dotted #151515"><div class="memdata">Icon</div></div>`;
+    document.querySelector(".objects").innerHTML +=
+      `<textarea id='dirIcon' onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'>${dirIcon}</textarea>`;
 
-    document.querySelector(
-      ".objects"
-    ).innerHTML += `<div class="memobject md-ripples"   style="border-bottom: 5px dotted #151515"><div class="memdata">Name</div></div>`;
-    document.querySelector(
-      ".objects"
-    ).innerHTML += `<textarea id='dirName' onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'>${dirName}</textarea>`;
+    document.querySelector(".objects").innerHTML +=
+      `<div class="memobject md-ripples"   style="border-bottom: 5px dotted #151515"><div class="memdata">Name</div></div>`;
+    document.querySelector(".objects").innerHTML +=
+      `<textarea id='dirName' onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'>${dirName}</textarea>`;
 
-    document.querySelector(
-      ".objects"
-    ).innerHTML += `<div class="memobject md-ripples" style="border-bottom: 5px dotted #151515"><div class="memdata">Fields</div></div>`;
-    document.querySelector(
-      ".objects"
-    ).innerHTML += `<textarea placeholder="Field1,Field2, ..." id='dirFields' onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'>${dirFields}</textarea>`;
+    document.querySelector(".objects").innerHTML +=
+      `<div class="memobject md-ripples" style="border-bottom: 5px dotted #151515"><div class="memdata">Fields</div></div>`;
+    document.querySelector(".objects").innerHTML +=
+      `<textarea placeholder="Field1,Field2, ..." id='dirFields' onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'>${dirFields}</textarea>`;
 
-    document.querySelector(
-      ".objects"
-    ).innerHTML += `<div class="memobject md-ripples" onclick="browser.removeDir()"><div class="memdata">Delete direcotry</div></div>`;
+    document.querySelector(".objects").innerHTML +=
+      `<div class="memobject md-ripples" onclick="browser.removeDir()"><div class="memdata">Delete direcotry</div></div>`;
 
     let items = document.querySelectorAll(".memos-object-input");
     for (let item of items) {
@@ -2212,21 +2214,18 @@ browser.editDirAPI = () => {
 };
 
 browser.newFile = (obj) => {
-  document.querySelector(
-    ".objects"
-  ).innerHTML = `<div class="memobject md-ripples" onclick="browser.addFile()"><div class="memdata">←</div></div>`;
+  document.querySelector(".objects").innerHTML =
+    `<div class="memobject md-ripples" onclick="browser.addFile()"><div class="memdata">←</div></div>`;
 
   // let fields = JSON.parse(obj[0].DATA) //array of strings
   let fieldNames = JSON.parse(obj[0].DATA)[1]; //array of strings
   let index = 0;
 
   for (let field of fieldNames) {
-    document.querySelector(
-      ".objects"
-    ).innerHTML += `<div class="memobject md-ripples field-name" onclick="browser.lockField(this)" style="border-bottom: 5px dotted #151515"><div class="memdata">${field}</div></div>`;
-    document.querySelector(
-      ".objects"
-    ).innerHTML += `<textarea oninput="auto_grow(this)" class='memos-object-input memos-userInput'></textarea>`;
+    document.querySelector(".objects").innerHTML +=
+      `<div class="memobject md-ripples field-name" onclick="browser.lockField(this)" style="border-bottom: 5px dotted #151515"><div class="memdata">${field}</div></div>`;
+    document.querySelector(".objects").innerHTML +=
+      `<textarea oninput="auto_grow(this)" class='memos-object-input memos-userInput'></textarea>`;
     index++;
   }
 
@@ -2272,9 +2271,8 @@ browser.obj = 0;
 browser.renderFile = (obj) => {
   console.log(obj);
   browser.obj = obj;
-  document.querySelector(
-    ".objects"
-  ).innerHTML = `<div class="memobject md-ripples" onclick="browser.editFile('${obj[0].ID}')"><div class="memdata">←</div></div>`;
+  document.querySelector(".objects").innerHTML =
+    `<div class="memobject md-ripples" onclick="browser.editFile('${obj[0].ID}')"><div class="memdata">←</div></div>`;
 
   let fields = JSON.parse(obj[0].DATA); //array of strings
 
@@ -2287,15 +2285,13 @@ browser.renderFile = (obj) => {
       browser.fields = fields;
       let qfields = JSON.parse(obj[0].SPEC).qfields; //array
       lock = browser.showLock(qfields.indexOf(index) > -1);
-      document.querySelector(
-        ".objects"
-      ).innerHTML += `<div class="memobject md-ripples field-name" onclick="browser.lockField(this)"style="border-bottom: 5px dotted #151515"><div class="memdata">${field.trim()} ${lock} </div></div>`;
+      document.querySelector(".objects").innerHTML +=
+        `<div class="memobject md-ripples field-name" onclick="browser.lockField(this)"style="border-bottom: 5px dotted #151515"><div class="memdata">${field.trim()} ${lock} </div></div>`;
       if (fields[index][0] == undefined) fields[index][0] = [""];
-      document.querySelector(
-        ".objects"
-      ).innerHTML += `<textarea onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input memos-userInput'>${fields[
-        index
-      ][0].join("\n")}</textarea>`;
+      document.querySelector(".objects").innerHTML +=
+        `<textarea onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input memos-userInput'>${fields[
+          index
+        ][0].join("\n")}</textarea>`;
       index++;
     }
   } catch (e) {
@@ -2303,13 +2299,11 @@ browser.renderFile = (obj) => {
     notifier.show(e);
   }
 
-  document.querySelector(
-    ".objects"
-  ).innerHTML += `<div class="memobject md-ripples" style="border-bottom: 5px dotted #151515"><div class="memdata">SPEC</div></div>`;
+  document.querySelector(".objects").innerHTML +=
+    `<div class="memobject md-ripples" style="border-bottom: 5px dotted #151515"><div class="memdata">SPEC</div></div>`;
 
-  document.querySelector(
-    ".objects"
-  ).innerHTML += `<textarea onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'>${obj[0].SPEC}
+  document.querySelector(".objects").innerHTML +=
+    `<textarea onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'>${obj[0].SPEC}
   )}</textarea>`;
 
   let items = document.querySelectorAll(".memos-object-input");
@@ -2320,37 +2314,30 @@ browser.renderFile = (obj) => {
   // document.querySelector(
   //   ".objects"
   // ).innerHTML += `<div class="memobject md-ripples" onclick="browser.editFile('${obj[0].ID}')"><div class="memdata">Save file</div></div>`;
-  document.querySelector(
-    ".objects"
-  ).innerHTML += `<div class="memobject md-ripples" style="border-bottom: 5px dotted #151515"><div class="memdata">Repeat in</div></div>`;
+  document.querySelector(".objects").innerHTML +=
+    `<div class="memobject md-ripples" style="border-bottom: 5px dotted #151515"><div class="memdata">Repeat in</div></div>`;
 
-  document.querySelector(
-    ".objects"
-  ).innerHTML += `<textarea onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'>${mem.calcRepeat(
-    obj[0].RDATE
-  )}</textarea>`;
+  document.querySelector(".objects").innerHTML +=
+    `<textarea onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'>${mem.calcRepeat(
+      obj[0].RDATE,
+    )}</textarea>`;
 
-  document.querySelector(
-    ".objects"
-  ).innerHTML += `<div class="memobject md-ripples" style="border-bottom: 5px dotted #151515"><div class="memdata">Total interval</div></div>`;
+  document.querySelector(".objects").innerHTML +=
+    `<div class="memobject md-ripples" style="border-bottom: 5px dotted #151515"><div class="memdata">Total interval</div></div>`;
 
   memPower = mem.convertHMS((obj[0].RDATE * 1 - obj[0].LREPEAT * 1) / 1000);
 
-  document.querySelector(
-    ".objects"
-  ).innerHTML += `<textarea onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'>${memPower}</textarea>`;
+  document.querySelector(".objects").innerHTML +=
+    `<textarea onchange="browser.triggerChange()" oninput="auto_grow(this)" class='memos-object-input'>${memPower}</textarea>`;
 
-  document.querySelector(
-    ".objects"
-  ).innerHTML += `<div class="memobject md-ripples" onclick="browser.postpone('${obj[0].ID}')"><div class="memdata">🕦 Postpone</div></div>`;
+  document.querySelector(".objects").innerHTML +=
+    `<div class="memobject md-ripples" onclick="browser.postpone('${obj[0].ID}')"><div class="memdata">🕦 Postpone</div></div>`;
 
-  document.querySelector(
-    ".objects"
-  ).innerHTML += `<div class="memobject md-ripples" onclick="browser.nullify('${obj[0].ID}')"><div class="memdata">⏲️ Nullify file</div></div>`;
+  document.querySelector(".objects").innerHTML +=
+    `<div class="memobject md-ripples" onclick="browser.nullify('${obj[0].ID}')"><div class="memdata">⏲️ Nullify file</div></div>`;
 
-  document.querySelector(
-    ".objects"
-  ).innerHTML += `<div class="memobject md-ripples" onclick="browser.removeFile('${obj[0].ID}')"><div class="memdata">🗑️ Delete file</div></div>`;
+  document.querySelector(".objects").innerHTML +=
+    `<div class="memobject md-ripples" onclick="browser.removeFile('${obj[0].ID}')"><div class="memdata">🗑️ Delete file</div></div>`;
 
   document.querySelector(".page2-node4").scrollTo({
     top: 0, //window.innerHeight-460
@@ -2400,7 +2387,7 @@ const readFields = (data) => {
   str += //waiting time
     "⏰ " +
     mem.convertHMS(
-      (Date.now() - 1 * data.RDATE) / 1000 //<-- strength
+      (Date.now() - 1 * data.RDATE) / 1000, //<-- strength
     );
   browser.data = data;
 
@@ -2409,20 +2396,20 @@ const readFields = (data) => {
     //integirty
     calculateIntegrity(
       100 *
-        ((Date.now() - 1 * data.RDATE) / (1 * data.RDATE - 1 * data.LREPEAT))
+        ((Date.now() - 1 * data.RDATE) / (1 * data.RDATE - 1 * data.LREPEAT)),
     ).toFixed(0) +
     "%";
 
   str +=
     "<br>💪 " +
     mem.convertHMS(
-      (data.RDATE * 1 - data.LREPEAT * 1) / 2 / 1000 //<-- strength
+      (data.RDATE * 1 - data.LREPEAT * 1) / 2 / 1000, //<-- strength
     );
 
   str +=
     "<br>🚗 " +
     mem.convertHMS(
-      (data.RDATE * 1 - data.LREPEAT * 1) / 1000 //<-- now going
+      (data.RDATE * 1 - data.LREPEAT * 1) / 1000, //<-- now going
     );
 
   return str;
@@ -2468,24 +2455,24 @@ browser.movePanel = () => {
     .querySelector(".memotable-upside")
     .classList.toggle("memotable-upside-down");
 };
-browser.order = "repeat in asc"
+browser.order = "repeat in asc";
 browser.selectOrder = () => {
-	console.log("ORDER")
-  browser.order = document.querySelector("#order").value
-  let order = browser.order
+  console.log("ORDER");
+  browser.order = document.querySelector("#order").value;
+  let order = browser.order;
   switch (order) {
     case "repeatInAsc":
       mem.terminalCommand("ls repeatIn");
-      break; 
+      break;
     case "intervalAsc":
       mem.terminalCommand("ls intervalAsc");
       break;
     case "intervalDesc":
       mem.terminalCommand("ls intervalDesc");
-	   break
+      break;
     case "lastRepeatDesc":
       mem.terminalCommand("ls lastRepeatDesc");
-	  break
+      break;
     case "integrityDesc":
       mem.terminalCommand("ls integrityDesc");
       break;
@@ -2501,7 +2488,7 @@ mem.dropDatabase = async function () {
   await sql2("DROP TABLE HISTORY");
 
   await sql2(
-    `CREATE TABLE IF NOT EXISTS OBJECTS (ID unique, PID, DATA, RDATE, LREPEAT, SPEC)`
+    `CREATE TABLE IF NOT EXISTS OBJECTS (ID unique, PID, DATA, RDATE, LREPEAT, SPEC)`,
   );
   await sql2(`CREATE TABLE IF NOT EXISTS DIRS (ID unique, PID, DATA)`);
   await sql2(`CREATE TABLE IF NOT EXISTS MEMOROUTES (ID unique, DATA)`);
@@ -2528,7 +2515,7 @@ async function importBackup(data) {
 
   browser.importProgress("🎁 Creating database...");
   await sql2(
-    `CREATE TABLE IF NOT EXISTS OBJECTS (ID unique, PID, DATA, RDATE, LREPEAT, SPEC)`
+    `CREATE TABLE IF NOT EXISTS OBJECTS (ID unique, PID, DATA, RDATE, LREPEAT, SPEC)`,
   );
   await sql2(`CREATE TABLE IF NOT EXISTS DIRS (ID unique, PID, DATA)`);
   await sql2(`CREATE TABLE IF NOT EXISTS MEMOROUTES (ID unique, DATA)`);
@@ -2558,12 +2545,12 @@ async function importBackup(data) {
   while (object) {
     object.DATA = object.DATA.replaceAll(`'`, `''`);
     await sql2(
-      `INSERT INTO OBJECTS (ID,PID, DATA, RDATE, LREPEAT, SPEC) VALUES ("${object.ID}","${object.PID}",'${object.DATA}',"${object.RDATE}", "${object.LREPEAT}", '${object.SPEC}')`
+      `INSERT INTO OBJECTS (ID,PID, DATA, RDATE, LREPEAT, SPEC) VALUES ("${object.ID}","${object.PID}",'${object.DATA}',"${object.RDATE}", "${object.LREPEAT}", '${object.SPEC}')`,
     );
     browser.importProgress(
       `🎁 Importing cards (${((i * 100) / cardsAmount).toFixed(
-        0
-      )}%) ${i} of ${cardsAmount}`
+        0,
+      )}%) ${i} of ${cardsAmount}`,
     );
     i++;
     object = parsed[0][i];
@@ -2583,12 +2570,12 @@ async function importBackup(data) {
   dir = parsed[1][0];
   while (dir) {
     await sql2(
-      `INSERT INTO DIRS (ID, PID, DATA) VALUES ("${dir.ID}", "${dir.PID}", '${dir.DATA}')`
+      `INSERT INTO DIRS (ID, PID, DATA) VALUES ("${dir.ID}", "${dir.PID}", '${dir.DATA}')`,
     );
     browser.importProgress(
       `🎁 Importing dirs (${((i * 100) / foldersAmount).toFixed(
-        0
-      )}%) ${i} of ${foldersAmount}`
+        0,
+      )}%) ${i} of ${foldersAmount}`,
     );
     i++;
     dir = parsed[1][i];
@@ -2628,41 +2615,40 @@ var openFile = function (event) {
 };
 
 function initImage() {
-  var files = document.getElementById('import-image').files;
-	console.log(files)
+  var files = document.getElementById("import-image").files;
+  console.log(files);
   if (files.length > 0) {
     openImage(files[0]);
   }
-};
+}
 
 function openImage(file) {
-  console.log(file)
-   var reader = new FileReader();
-   reader.readAsDataURL(file);
-   reader.onload = function () {
-     console.log(reader.result);
-   };
-   reader.onerror = function (error) {
-     console.log('Error: ', error);
-   };
+  console.log(file);
+  var reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onload = function () {
+    console.log(reader.result);
+  };
+  reader.onerror = function (error) {
+    console.log("Error: ", error);
+  };
 }
 
 function openImage2(file) {
-	console.log(file)
-	console.log("working")
-	try {
-   var reader = new FileReader();
-   reader.onload = function () {
-     console.log(reader.result);
-   };
-   reader.onerror = function (error) {
-     console.log('Error: ', error);
-   };
-	   reader.readAsDataURL(file);
-
-	} catch(e) {
-		console.log(e)
-	}
+  console.log(file);
+  console.log("working");
+  try {
+    var reader = new FileReader();
+    reader.onload = function () {
+      console.log(reader.result);
+    };
+    reader.onerror = function (error) {
+      console.log("Error: ", error);
+    };
+    reader.readAsDataURL(file);
+  } catch (e) {
+    console.log(e);
+  }
 }
 
 var openImage2 = function (event) {
@@ -2715,100 +2701,80 @@ browser.render = (showFile, id, data) => {
       document.querySelector(".objects").innerHTML = "";
 
       if (path.length > 1)
-        document.querySelector(
-          ".objects"
-        ).innerHTML = `<div class="memobject md-ripples" onclick="browser.goUp()"><div class="memdata">←</div></div>`;
+        document.querySelector(".objects").innerHTML =
+          `<div class="memobject md-ripples" onclick="browser.goUp()"><div class="memdata">←</div></div>`;
 
-      document.querySelector(
-        ".objects"
-      ).innerHTML += `<div class="memobject md-ripples"><div class="memdata">${pathNames
-        .join("/")
-        .replace("//", "/")}</div></div>`;
+      document.querySelector(".objects").innerHTML +=
+        `<div class="memobject md-ripples"><div class="memdata">${pathNames
+          .join("/")
+          .replace("//", "/")}</div></div>`;
 
       if (browser.showControlPanel) {
-        document.querySelector(
-          ".objects"
-        ).innerHTML += `<div onclick="browser.toggle()"class="memobject md-ripples"><div class="memdata">⚙️ Hide controls</div></div>`;
+        document.querySelector(".objects").innerHTML +=
+          `<div onclick="browser.toggle()"class="memobject md-ripples"><div class="memdata">⚙️ Hide controls</div></div>`;
       } else {
-        document.querySelector(
-          ".objects"
-        ).innerHTML += `<div onclick="browser.toggle()"class="memobject md-ripples"><div class="memdata">⚙️ Show controls</div></div>`;
+        document.querySelector(".objects").innerHTML +=
+          `<div onclick="browser.toggle()"class="memobject md-ripples"><div class="memdata">⚙️ Show controls</div></div>`;
       }
 
       if (browser.showControlPanel) {
-        document.querySelector(
-          ".objects"
-        ).innerHTML += `<div class="memobject md-ripples" onclick="browser.search()"><div class="memdata">${
-          !mem.terminalChoice.includes("find") ? "🔎 Search" : "🚪 Back to list"
-        }</div></div>`;
-
-		if (path[path.length - 1] != "/")
-          document.querySelector(
-            ".objects"
-          ).innerHTML += `<div class="memobject md-ripples" onclick="browser.newFileInit()"><div class="memdata">📝 Add card</div></div>`;
-
-
-        document.querySelector(
-          ".objects"
-        ).innerHTML += `<div class="memobject md-ripples" onclick="browser.newDir()"><div class="memdata">📁 Add catalog</div></div>`;
-
-	
-		 // document.querySelector(
-          //".objects"
-		  //).innerHTML += `<div class="memobject md-ripples" onclick="mem.terminalCommand('ls')"><div class="memdata">🔃 Refresh</div></div>`;
-
-
+        document.querySelector(".objects").innerHTML +=
+          `<div class="memobject md-ripples" onclick="browser.search()"><div class="memdata">${
+            !mem.terminalChoice.includes("find")
+              ? "🔎 Search"
+              : "🚪 Back to list"
+          }</div></div>`;
 
         if (path[path.length - 1] != "/")
-          document.querySelector(
-            ".objects"
-          ).innerHTML += `<div class="memobject md-ripples" onclick="browser.editDirInit()"><div class="memdata">🔧 Edit this catalog</div></div>`;
+          document.querySelector(".objects").innerHTML +=
+            `<div class="memobject md-ripples" onclick="browser.newFileInit()"><div class="memdata">📝 Add card</div></div>`;
+
+        document.querySelector(".objects").innerHTML +=
+          `<div class="memobject md-ripples" onclick="browser.newDir()"><div class="memdata">📁 Add catalog</div></div>`;
+
+        // document.querySelector(
+        //".objects"
+        //).innerHTML += `<div class="memobject md-ripples" onclick="mem.terminalCommand('ls')"><div class="memdata">🔃 Refresh</div></div>`;
 
         if (path[path.length - 1] != "/")
-          document.querySelector(
-            ".objects"
-          ).innerHTML += `<div class="memobject md-ripples" onclick="browser.moveDirInit(this)"><div class="memdata">🚚 Move this catalog...</div></div>`;
+          document.querySelector(".objects").innerHTML +=
+            `<div class="memobject md-ripples" onclick="browser.editDirInit()"><div class="memdata">🔧 Edit this catalog</div></div>`;
+
+        if (path[path.length - 1] != "/")
+          document.querySelector(".objects").innerHTML +=
+            `<div class="memobject md-ripples" onclick="browser.moveDirInit(this)"><div class="memdata">🚚 Move this catalog...</div></div>`;
 
         if (browser.movingDirID !== "")
-          document.querySelector(
-            ".objects"
-          ).innerHTML += `<div class="memobject md-ripples" onclick="browser.moveDirFinish(this)"><div class="memdata">🚚 Move here</div></div>`;
-
-       
-        if (path[path.length - 1] == "/")
-          document.querySelector(
-            ".objects"
-          ).innerHTML += `<div class="memobject md-ripples" onclick="mem.export()"><div class="memdata">📨 Export data</div></div>`;
+          document.querySelector(".objects").innerHTML +=
+            `<div class="memobject md-ripples" onclick="browser.moveDirFinish(this)"><div class="memdata">🚚 Move here</div></div>`;
 
         if (path[path.length - 1] == "/")
-          document.querySelector(
-            ".objects"
-          ).innerHTML += `<div class="memobject md-ripples" onclick="document.querySelector('#import').click()"><div class="memdata import">🎁 Import data</div></div>`;
+          document.querySelector(".objects").innerHTML +=
+            `<div class="memobject md-ripples" onclick="mem.export()"><div class="memdata">📨 Export data</div></div>`;
 
-if (path[path.length - 1] == "/")
-          document.querySelector(
-            ".objects"
-          ).innerHTML += `<button onclick="initImage()" id='import-image-button'>image</button>`;
+        if (path[path.length - 1] == "/")
+          document.querySelector(".objects").innerHTML +=
+            `<div class="memobject md-ripples" onclick="document.querySelector('#import').click()"><div class="memdata import">🎁 Import data</div></div>`;
 
-        if (path[path.length - 1] == "/") { 
-          document.querySelector(
-            ".objects"
-          ).innerHTML += `<input id="import" type="file" style='display: none' accept='text/plain' onchange='openFile(event)'/>`;
-  document.querySelector(
-            ".objects"
-          ).innerHTML += `<input id="import-image" type="file"/>`;
-		}
+        if (path[path.length - 1] == "/")
+          document.querySelector(".objects").innerHTML +=
+            `<button onclick="initImage()" id='import-image-button'>image</button>`;
+
+        if (path[path.length - 1] == "/") {
+          document.querySelector(".objects").innerHTML +=
+            `<input id="import" type="file" style='display: none' accept='text/plain' onchange='openFile(event)'/>`;
+          document.querySelector(".objects").innerHTML +=
+            `<input id="import-image" type="file"/>`;
+        }
       }
 
       if (path[path.length - 1] !== "/")
-        document.querySelector(
-          ".objects"
-        ).innerHTML += `<div class="memobject md-ripples"><div class="memdata" id="total-objects"></div></div>`;
+        document.querySelector(".objects").innerHTML +=
+          `<div class="memobject md-ripples"><div class="memdata" id="total-objects"></div></div>`;
 
-	  document.cre
-      document.querySelector(
-        ".objects"
-      ).innerHTML += `<label id="label">Select order</label>
+      document.cre;
+      document.querySelector(".objects").innerHTML +=
+        `<label id="label">Select order</label>
       <select onchange="browser.selectOrder()" name="cars" id="order">
       <option value="${browser.order}">${browser.order}</option>
       <option value="repeatInAsc">By repeat in</option>
@@ -2818,7 +2784,7 @@ if (path[path.length - 1] == "/")
       <option value="integrityDesc">By integrity DESC</option>
     </select>
 	`;
-		//console.log(document.querySelector("#order").value)
+      //console.log(document.querySelector("#order").value)
 
       if (mem.offset != 0)
         document.querySelector(".objects").innerHTML += `
@@ -2865,9 +2831,8 @@ if (path[path.length - 1] == "/")
           `;
         }
 
-        document.querySelector(
-          "#total-objects"
-        ).innerHTML = `📚 TOTAL:  ${res[0].TOTAL}`;
+        document.querySelector("#total-objects").innerHTML =
+          `📚 TOTAL:  ${res[0].TOTAL}`;
       });
       document.querySelector(".page2-node4").scrollBy(0, 50);
     }
@@ -2896,7 +2861,7 @@ mem.setAvailable = () => {
   check.next();
 };
 
-mem.circleData(1)
+mem.circleData(1);
 //mem.collect(); //collect items to repeat
 //setInterval(mem.collect, 5000);
 mem.when();
@@ -2912,7 +2877,7 @@ mem.countTotal();
 mem.memoPower();
 mem.maxIntegrity();
 mem.averageIntegrity();
-mem.minimalInterval()
+mem.minimalInterval();
 mem.canEarn();
 // const clickHandler = (event) => event.target.focus()
 // document.addEventListener('click',clickHandler)
@@ -2929,3 +2894,87 @@ setInterval(() => {
 sql("INSERT INTO OBJECTS (ID, DATA, repeat, dir) VALUES ('2.3','DATA',10,'main')")
 sql("INSERT INTO LOGS (ID, log) VALUES (3, 'three')")
 */
+
+/**
+ * Date → Unix range converter + optional browser date faker
+ *
+ * @param {string} dateStr - "YYYY/MM/DD" (example: "2025/12/16")
+ * @param {number} gmtOffset - hours from UTC (Moscow = 3, Madrid winter = 1, etc.)
+ * @param {boolean} debug - if true, makes browser think current date is the given date
+ * @returns {Object} { start: number, end: number, isDebugActive: boolean }
+ */
+function dateToUnixWithFake(dateStr, gmtOffset = 0, debug = false) {
+  // ── Input validation ───────────────────────────────────────────────
+  if (!/^\d{4}\/\d{2}\/\d{2}$/.test(dateStr)) {
+    throw new Error("Date format must be exactly YYYY/MM/DD");
+  }
+  if (!Number.isInteger(gmtOffset) || Math.abs(gmtOffset) > 14) {
+    throw new Error("GMT offset must be integer between -14 and 14");
+  }
+
+  // ── Parse date ─────────────────────────────────────────────────────
+  const [year, month, day] = dateStr.split("/").map(Number);
+
+  // Create midnight UTC of target date
+  const targetMidnightUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+
+  // Apply offset (positive = east of UTC)
+  const offsetMs = gmtOffset * 3600 * 1000;
+  const startUnix = Math.floor((targetMidnightUTC.getTime() - offsetMs) / 1000);
+  const endUnix = startUnix + 86399;
+
+  // ── Debug mode: fake browser time ──────────────────────────────────
+  let isDebugActive = false;
+
+  if (debug) {
+    try {
+      const realDate = window.Date;
+      const fakeNow = new Date(startUnix * 1000 + 12 * 3600 * 1000); // noon of target day
+
+      window.Date = function (...args) {
+        if (!args.length) return new realDate(fakeNow.getTime());
+        return new realDate(...args);
+      };
+
+      window.Date.now = () => fakeNow.getTime();
+
+      // Minimal attempt to look native
+      Object.defineProperty(window.Date, "prototype", {
+        value: realDate.prototype,
+      });
+      Object.defineProperty(window.Date, "length", { value: 7 });
+
+      isDebugActive = true;
+
+      console.warn(
+        `%c[Date faker active] Browser now thinks today is ${dateStr}`,
+        "background:#444;color:#0f0;padding:2px 6px;border-radius:3px;",
+      );
+    } catch (e) {
+      console.error("Could not activate date faker:", e);
+    }
+  }
+
+  return {
+    start: startUnix,
+    end: endUnix,
+    isDebugActive,
+    // For quick check
+    targetDate: dateStr,
+    gmtOffset,
+    fakeNowISO: debug ? new Date(startUnix * 1000).toISOString() : null,
+  };
+}
+
+// ──────────────────────────────────────────────── Examples:
+
+// Normal usage (Moscow, no fake)
+console.log(dateToUnixWithFake("2025/12/16", 3));
+// → { start: 1734301200, end: 1734387599, isDebugActive: false, ... }
+
+// With fake date (browser will think it's 16 Dec 2025)
+const result = dateToUnixWithFake("2025/12/16", 3, true);
+console.log(result);
+// After this call:
+// new Date() → something like "Mon Dec 16 2025 12:00:00 GMT+0300"
+// Date.now() → ~1734344400000
